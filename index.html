@@ -603,7 +603,7 @@ function buildPeriodManager(yrs,dates){
     // Mode buttons
     var modes=h("div",{className:"period-modes"});
     [["year","📅 Ano"],["range","📆 Int."],["month","🗓️ Mês"]].forEach(function(pair){
-      modes.appendChild(h("button",{className:"period-mode-btn"+(p.mode===pair[0]?" active":""),style:{background:p.mode===pair[0]?clr:"transparent"},onClick:(function(pid,m){return function(){update(function(){S.periods.forEach(function(x){if(x.id===pid)x.mode=m;});});};})(p.id,pair[0])},[pair[1]]));
+      modes.appendChild(h("button",{className:"period-mode-btn"+(p.mode===pair[0]?" active":""),style:{background:p.mode===pair[0]?clr:"transparent"},onClick:(function(pid,m){return function(){update(function(){S.periods.forEach(function(x){if(x.id===pid){x.mode=m;if(m==="range"){var avail=tabDates();var last=avail[avail.length-1]||x.from;var prev=avail[Math.max(0,avail.length-2)]||last;x.from=prev;x.to=last;}}});});};})(p.id,pair[0])},[pair[1]]));
     });
     row.appendChild(modes);
     if(p.mode==="year"){
@@ -612,10 +612,12 @@ function buildPeriodManager(yrs,dates){
       yrs.forEach(function(y){var o=h("option",{value:y},[y]);if(y===p.yr)o.selected=true;sel.appendChild(o);});
       row.appendChild(sel);
     } else if(p.mode==="range"){
-      var sf=h("select",{onChange:(function(pid){return function(e){update(function(){S.periods.forEach(function(x){if(x.id===pid)x.from=e.target.value;});});};})(p.id)});
-      dates.forEach(function(d){var o=h("option",{value:d},[lbl(d)]);if(d===p.from)o.selected=true;sf.appendChild(o);});
-      var st=h("select",{onChange:(function(pid){return function(e){update(function(){S.periods.forEach(function(x){if(x.id===pid)x.to=e.target.value;});});};})(p.id)});
-      dates.forEach(function(d){var o=h("option",{value:d},[lbl(d)]);if(d===p.to)o.selected=true;st.appendChild(o);});
+      var sf=h("select",{onChange:(function(pid){return function(e){var v=e.target.value;update(function(){S.periods.forEach(function(x){if(x.id===pid)x.from=v;});});};})(p.id)});
+      dates.forEach(function(d){var o=document.createElement("option");o.value=d;o.textContent=lbl(d);sf.appendChild(o);});
+      sf.value=p.from;
+      var st=h("select",{onChange:(function(pid){return function(e){var v=e.target.value;update(function(){S.periods.forEach(function(x){if(x.id===pid)x.to=v;});});};})(p.id)});
+      dates.forEach(function(d){var o=document.createElement("option");o.value=d;o.textContent=lbl(d);st.appendChild(o);});
+      st.value=p.to;
       row.appendChild(sf);row.appendChild(txt("→"));row.appendChild(st);
     } else {
       // auto-clamp month to available dates
