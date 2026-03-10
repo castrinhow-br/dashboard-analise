@@ -356,13 +356,15 @@ var S={
 function tabDates(){
   // Returns dates available for the current tab's data source
   var src;
-  if(S.tab===1)src=S.lp;
-  else if(S.tab===2)src=S.lpCAM;
-  else if(S.tab===3)src=S.lpCAV;
-  else if(S.tab===4)src=S.lpSLM;
-  else if(S.tab===5)src=S.lpCAX;
-  else if(S.tab===6)src=S.rank;
-  else src=S.fat; // tab 0 (fat) and tab 7 (pisos) use fat dates
+  if(S.tab===1)src=S.fat;       // Faturamento
+  else if(S.tab===2)src=S.lp;   // Mix Produtos
+  else if(S.tab===3)src=S.lpCAM;
+  else if(S.tab===4)src=S.lpCAV;
+  else if(S.tab===5)src=S.lpSLM;
+  else if(S.tab===6)src=S.lpCAX;
+  else if(S.tab===7)src=S.rank; // Fornecedores
+  else if(S.tab===8)src=S.pis;  // Pisos
+  else src=S.fat;
   return (src||S.fat).map(function(d){return d.date;});
 }
 function allDates(){return tabDates();}
@@ -603,7 +605,7 @@ function buildPeriodManager(yrs,dates){
     // Mode buttons
     var modes=h("div",{className:"period-modes"});
     [["year","📅 Ano"],["range","📆 Int."],["month","🗓️ Mês"]].forEach(function(pair){
-      modes.appendChild(h("button",{className:"period-mode-btn"+(p.mode===pair[0]?" active":""),style:{background:p.mode===pair[0]?clr:"transparent"},onClick:(function(pid,m){return function(){update(function(){S.periods.forEach(function(x){if(x.id===pid){x.mode=m;if(m==="range"){var avail=tabDates();var last=avail[avail.length-1]||x.from;var prev=avail[Math.max(0,avail.length-2)]||last;x.from=prev;x.to=last;}}});});};})(p.id,pair[0])},[pair[1]]));
+      modes.appendChild(h("button",{className:"period-mode-btn"+(p.mode===pair[0]?" active":""),style:{background:p.mode===pair[0]?clr:"transparent"},onClick:(function(pid,m){return function(){update(function(){S.periods.forEach(function(x){if(x.id===pid)x.mode=m;});});};})(p.id,pair[0])},[pair[1]]));
     });
     row.appendChild(modes);
     if(p.mode==="year"){
