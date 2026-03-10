@@ -1069,16 +1069,18 @@ function buildTabPisos(pisF,lastPis,dates,yrs){
     div.appendChild(h("div",{className:"card"},[h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"14px",flexWrap:"wrap",gap:"10px"}},[h("div",{className:"card-title",style:{marginBottom:"0"}},["Pisos & Revestimentos"]),mbar]),chartDiv]));
     var series, fmtY, fmtTip;
     if(S.pisM==="pm2"){
-      series=S.aPis.filter(function(s){return s!=="Outros";}).map(function(s){
-        return{name:s,color:PISOS_CLR[s],values:pisF.map(function(d){
-          var R=d[s]&&d[s].R?d[s].R:null;
-          var m=d[s]&&d[s].m2?d[s].m2:null;
-          return{x:lbl(d.date),y:R&&m&&m>0?R/m:null};
-        })};
-      });
-      fmtY=function(v){return v!=null?"R$ "+v.toFixed(0):"";};
-      fmtTip=function(v){return v?fmtBR(v)+"/m²":"—";};
-      window._chartData["pis"]={type:"line",series:series,fmtY:fmtY,fmtTip:fmtTip};
+      // Barras horizontais ranqueadas — preço médio do último mês disponível
+      var pm2Data=S.aPis.filter(function(s){return s!=="Outros";}).map(function(s){
+        var R=lastPis[s]&&lastPis[s].R?lastPis[s].R:null;
+        var m=lastPis[s]&&lastPis[s].m2?lastPis[s].m2:null;
+        return{name:s,val:R&&m&&m>0?R/m:null,color:PISOS_CLR[s]};
+      }).filter(function(d){return d.val!=null;});
+      pm2Data.sort(function(a,b){return b.val-a.val;});
+      var maxPm2=pm2Data.length?pm2Data[0].val:1;
+      var barH=Math.max(160,pm2Data.length*44+40);
+      // Override chart div height
+      chartDiv.style.height=barH+"px";
+      window._chartData["pis"]={type:"bar-h",data:pm2Data,fmtTip:function(v){return v!=null?"R$ "+v.toFixed(0)+"/m²":"—";},maxOverride:maxPm2*1.15,fmtAxis:function(v){return"R$ "+v.toFixed(0);}};
     } else {
       series=S.aPis.map(function(s){return{name:s,color:PISOS_CLR[s],values:pisF.map(function(d){var v=d[s]?d[s][S.pisM]:null;return{x:lbl(d.date),y:v};})};});
       fmtY=S.pisM==="R"?function(v){return(v/1000).toFixed(0)+"k";}:function(v){return v!=null?v.toFixed(0):"";};
@@ -1751,17 +1753,18 @@ function drawBarH(g,cfg,w,h,margin){
     h=neededH;
   }
   var yScale=d3.scaleBand().domain(data.map(function(d){return d.name;})).range([0,h]).padding(0.15);
-  var maxV=d3.max(data,function(d){return d.val;})||1;
-  var xScale=d3.scaleLinear().domain([0,maxV*1.05]).range([0,w]);
+  var maxV=cfg.maxOverride||d3.max(data,function(d){return d.val;})||1;
+  var xScale=d3.scaleLinear().domain([0,maxV]).range([0,w]);
+  var axFmt=cfg.fmtAxis||function(v){return(v/1000).toFixed(0)+"k";};
   g.append("g").attr("class","grid").call(d3.axisBottom(xScale).ticks(5).tickSize(h).tickFormat("").tickSizeOuter(0));
-  g.append("g").attr("class","axis").attr("transform","translate(0,"+h+")").call(d3.axisBottom(xScale).ticks(5).tickFormat(function(v){return(v/1000).toFixed(0)+"k";}));
+  g.append("g").attr("class","axis").attr("transform","translate(0,"+h+")").call(d3.axisBottom(xScale).ticks(5).tickFormat(axFmt));
   g.append("g").attr("class","axis").call(d3.axisLeft(yScale));
   data.forEach(function(d){
     var bw=Math.max(0,xScale(d.val)||0);
     g.append("rect").attr("y",yScale(d.name)).attr("x",0).attr("height",yScale.bandwidth()).attr("width",bw).attr("fill",d.color).attr("rx",3)
       .on("mouseover",function(evt){showTip('<div class="tooltip-title">'+d.name+"</div>"+'<span style="font-weight:700">'+((cfg.fmtTip||fmtBR)(d.val))+"</span>",evt);})
       .on("mousemove",function(evt){moveTip(evt);}).on("mouseleave",hideTip);
-    if(bw>30)g.append("text").attr("y",yScale(d.name)+yScale.bandwidth()/2+4).attr("x",bw+4).attr("fill","#8b9dc3").attr("font-size","10").text((cfg.fmtTip||fmtBR)(d.val));
+    if(bw>30)g.append("text").attr("y",yScale(d.name)+yScale.bandwidth()/2+4).attr("x",bw+6).attr("fill","#e8eaf0").attr("font-size","11").attr("font-weight","600").text((cfg.fmtTip||fmtBR)(d.val));
   });
 }
 
