@@ -1615,7 +1615,7 @@ function buildTabMetas(){
   var faltaRede=Math.max(0,totMeta-totParc);
   var medAtualRede=elAll>0?totParc/elAll:0;
   var medNecRede=(totAll-elAll)>0?faltaRede/(totAll-elAll):0;
-  var semRede=pctRede>=(wPace+0.05)?"#4fbf8e":pctRede>=(wPace-0.15)?"#f7c94f":"#f74f7e";
+  var semRede=pctRede>=wPace?"#4fbf8e":pctRede>=(wPace-0.15)?"#f7c94f":"#f74f7e";
 
   // ── Header ─────────────────────────────────────────────────────────────────
   wrap.appendChild(h("div",{style:{display:"flex",alignItems:"center",gap:"10px",marginBottom:"14px",flexWrap:"wrap"}},[
@@ -1739,8 +1739,8 @@ function buildTabMetas(){
     var totSt=tot(st);
     var medAt=elSt>0?parc/elSt:0;
     var medNec=(totSt-elSt)>0?falta/(totSt-elSt):0;
-    var sem=pctSt>=(pc+0.05)?"#4fbf8e":pctSt>=(pc-0.15)?"#f7c94f":"#f74f7e";
-    var semIcon=pctSt>=(pc+0.05)?"▲":pctSt>=(pc-0.15)?"►":"▼";
+    var sem=pctSt>=pc?"#4fbf8e":pctSt>=(pc-0.15)?"#f7c94f":"#f74f7e";
+    var semIcon=pctSt>=pc?"▲":pctSt>=(pc-0.15)?"►":"▼";
 
     var card=h("div",{className:"card",style:{padding:"0",overflow:"hidden",marginBottom:"0"}});
 
