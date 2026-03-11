@@ -1513,6 +1513,7 @@ function parsePisos(rows){
 // ── TAB: METAS ───────────────────────────────────────────────────────────────
 
 
+
 // ── HELPERS para Metas ───────────────────────────────────────────────────────
 function parseBR(s){
   if(!s)return 0;
@@ -1574,81 +1575,108 @@ function buildTabMetas(){
   var semRede=pctRede>=(wPace+0.05)?"#4fbf8e":pctRede>=(wPace-0.15)?"#f7c94f":"#f74f7e";
 
   // ── Header ─────────────────────────────────────────────────────────────────
-  wrap.appendChild(h("div",{style:{display:"flex",alignItems:"center",justifyContent:"space-between",marginBottom:"16px",flexWrap:"wrap",gap:"8px"}},[
-    h("div",{style:{display:"flex",alignItems:"center",gap:"10px"}},[
-      h("span",{style:{fontSize:"16px",fontWeight:"800",letterSpacing:"-.3px"}},["🎯 Metas — "+monthLbl]),
-      h("span",{className:"badge",style:{background:"#1a2540",border:"1px solid #2d3a52",borderRadius:"6px",padding:"3px 10px",fontSize:"11px",color:"#8b9dc3"}},
-        ["⏱ Dados até dia "+diaRef+" · "+elAll+" de "+totAll+" dias úteis"])
-    ])
+  wrap.appendChild(h("div",{style:{display:"flex",alignItems:"center",gap:"10px",marginBottom:"14px",flexWrap:"wrap"}},[
+    h("span",{style:{fontSize:"16px",fontWeight:"800",letterSpacing:"-.3px"}},["🎯 Metas — "+monthLbl]),
+    h("span",{style:{background:"#1a2540",border:"1px solid #2d3a52",borderRadius:"6px",
+      padding:"3px 10px",fontSize:"11px",color:"#8b9dc3"}},
+      ["⏱ Dados até dia "+diaRef+" · "+elAll+" de "+totAll+" dias úteis"])
   ]));
 
-  // ── Banner REDE ─────────────────────────────────────────────────────────────
-  var rede=h("div",{className:"card",style:{marginBottom:"16px",padding:"0",overflow:"hidden"}});
+  // ── Seção de inputs compacta ───────────────────────────────────────────────
+  var inputCard=h("div",{className:"card",style:{marginBottom:"14px",padding:"14px 16px"}});
+  inputCard.appendChild(h("div",{style:{fontSize:"10px",fontWeight:"700",color:"#8b9dc3",
+    textTransform:"uppercase",letterSpacing:".1em",marginBottom:"10px"}},["✏️ Metas e parcial do mês"]));
 
-  // Topo colorido
+  var inputGrid=h("div",{style:{display:"grid",gridTemplateColumns:"repeat(4,1fr)",gap:"10px"}});
+  STORES.forEach(function(st){
+    var clr=CLR[st];
+    var col=h("div",{});
+    col.appendChild(h("div",{style:{fontSize:"11px",fontWeight:"700",color:clr,marginBottom:"6px",letterSpacing:".08em"}},[st]));
+
+    function mkInp(lbl,field){
+      var wr=h("div",{style:{marginBottom:"6px"}});
+      wr.appendChild(h("div",{style:{fontSize:"10px",color:"#8b9dc3",marginBottom:"2px"}},[lbl]));
+      var i=h("input",{
+        type:"text",
+        value:S[field][st]?fmtNum(S[field][st]):"",
+        placeholder:"0",
+        style:{width:"100%",background:"#0d1424",border:"1px solid #2d3a52",
+          borderRadius:"6px",color:"#e8edf8",fontSize:"12px",
+          fontFamily:"monospace",padding:"5px 8px",outline:"none"},
+        onFocus:function(e){e.target.style.borderColor=clr;e.target.style.boxShadow="0 0 0 2px "+clr+"33";},
+        onBlur:function(e){e.target.style.borderColor="#2d3a52";e.target.style.boxShadow="none";},
+        onChange:(function(s,f){return function(e){
+          var v=parseBR(e.target.value);
+          update(function(){S[f][s]=v;});
+        };})(st,field)
+      });
+      wr.appendChild(i);
+      return wr;
+    }
+    col.appendChild(mkInp("Meta (R$)","metas"));
+    col.appendChild(mkInp("Parcial (R$)","parcial"));
+    inputGrid.appendChild(col);
+  });
+  inputCard.appendChild(inputGrid);
+  wrap.appendChild(inputCard);
+
+  // ── Banner REDE ─────────────────────────────────────────────────────────────
+  var rede=h("div",{className:"card",style:{marginBottom:"14px",padding:"0",overflow:"hidden"}});
+
   var redeTop=h("div",{style:{
-    padding:"16px 20px",
+    padding:"14px 18px",
     background:"linear-gradient(135deg,#1a2540,#141c2e)",
     borderBottom:"1px solid #2d3a52",
-    display:"flex",alignItems:"center",gap:"24px",flexWrap:"wrap"
+    display:"flex",alignItems:"center",gap:"20px",flexWrap:"wrap"
   }});
 
-  // % grande
   redeTop.appendChild(h("div",{style:{display:"flex",flexDirection:"column",gap:"2px"}},[
     h("span",{style:{fontSize:"10px",fontWeight:"700",color:"#8b9dc3",letterSpacing:".12em",textTransform:"uppercase"}},["🏪 Rede"]),
-    h("span",{style:{fontSize:"44px",fontWeight:"900",fontFamily:"monospace",color:totMeta>0?semRede:"#2d3a52",lineHeight:"1"}},
+    h("span",{style:{fontSize:"40px",fontWeight:"900",fontFamily:"monospace",color:totMeta>0?semRede:"#2d3a52",lineHeight:"1"}},
       [totMeta>0?(pctRede*100).toFixed(1)+"%":"—"])
   ]));
 
-  // Divisor
-  redeTop.appendChild(h("div",{style:{width:"1px",height:"60px",background:"#2d3a52",flexShrink:"0"}}));
+  redeTop.appendChild(h("div",{style:{width:"1px",height:"52px",background:"#2d3a52",flexShrink:"0"}}));
 
-  // KPIs em grid
-  var redeKpis=[
+  var kpiGrid=h("div",{style:{display:"flex",gap:"16px",flexWrap:"wrap",flex:"1"}});
+  [
     ["Parcial",fmtR(totParc),"#e8edf8"],
     ["Meta",fmtR(totMeta),"#e8edf8"],
     ["Falta",fmtR(faltaRede),"#8b9dc3"],
     ["Projeção",fmtR(Math.round(projRede)),semRede],
-    [defRede>=0?"Superávit proj.":"Deficit proj.",(defRede>=0?"+ ":"− ")+fmtR(Math.abs(Math.round(defRede))),defRede>=0?"#4fbf8e":"#f74f7e"]
-  ];
-  var kpiGrid=h("div",{style:{display:"flex",gap:"20px",flexWrap:"wrap",flex:"1"}});
-  redeKpis.forEach(function(k){
-    kpiGrid.appendChild(h("div",{style:{display:"flex",flexDirection:"column",gap:"3px"}},[
-      h("span",{style:{fontSize:"10px",color:"#8b9dc3",textTransform:"uppercase",letterSpacing:".07em"}},[k[0]]),
-      h("span",{style:{fontSize:"15px",fontWeight:"700",fontFamily:"monospace",color:k[2]}},[k[1]])
+    [defRede>=0?"Superávit":"Deficit",(defRede>=0?"▲ +":"▼ ")+fmtR(Math.abs(Math.round(defRede))),defRede>=0?"#4fbf8e":"#f74f7e"]
+  ].forEach(function(k){
+    kpiGrid.appendChild(h("div",{style:{display:"flex",flexDirection:"column",gap:"2px"}},[
+      h("span",{style:{fontSize:"10px",color:"#8b9dc3",textTransform:"uppercase",letterSpacing:".06em"}},[k[0]]),
+      h("span",{style:{fontSize:"14px",fontWeight:"700",fontFamily:"monospace",color:k[2]}},[k[1]])
     ]));
   });
   redeTop.appendChild(kpiGrid);
   rede.appendChild(redeTop);
 
-  // Barra + médias
-  var redeBot=h("div",{style:{padding:"12px 20px",display:"flex",alignItems:"center",gap:"24px",flexWrap:"wrap"}});
-
-  // Barra de progresso
-  var barArea=h("div",{style:{flex:"1",minWidth:"180px"}});
-  var barWrap=h("div",{style:{position:"relative",height:"8px",background:"#0d1424",borderRadius:"4px",overflow:"hidden",marginBottom:"4px"}});
-  barWrap.appendChild(h("div",{style:{height:"100%",width:(Math.min(1,pctRede)*100)+"%",
-    background:"linear-gradient(90deg,"+semRede+"88,"+semRede+")",borderRadius:"4px",transition:"width .4s"}}));
-  barWrap.appendChild(h("div",{style:{position:"absolute",top:"-2px",left:(wPace*100)+"%",
+  var redeBot=h("div",{style:{padding:"10px 18px",display:"flex",alignItems:"center",gap:"20px",flexWrap:"wrap"}});
+  var barArea=h("div",{style:{flex:"1",minWidth:"160px"}});
+  var bw=h("div",{style:{position:"relative",height:"8px",background:"#0d1424",borderRadius:"4px",overflow:"hidden",marginBottom:"3px"}});
+  bw.appendChild(h("div",{style:{height:"100%",width:(Math.min(1,pctRede)*100)+"%",
+    background:"linear-gradient(90deg,"+semRede+"77,"+semRede+")",borderRadius:"4px"}}));
+  bw.appendChild(h("div",{style:{position:"absolute",top:"-2px",left:(wPace*100)+"%",
     width:"2px",height:"12px",background:"#8b9dc3",borderRadius:"1px"}}));
-  barArea.appendChild(barWrap);
+  barArea.appendChild(bw);
   barArea.appendChild(h("div",{style:{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#8b9dc3"}},[
-    h("span",{},["Pace esperado: "+(wPace*100).toFixed(0)+"%"]),
-    h("span",{},["Meta: 100%"])
+    h("span",{},["Pace: "+(wPace*100).toFixed(0)+"%"]),h("span",{},["100%"])
   ]));
   redeBot.appendChild(barArea);
 
-  // Médias
-  var medRow=h("div",{style:{display:"flex",gap:"20px",flexWrap:"wrap"}});
+  var medDiv=h("div",{style:{display:"flex",gap:"16px",flexWrap:"wrap"}});
   function medKpi(lbl,val,clr){
     return h("div",{style:{display:"flex",flexDirection:"column",gap:"2px"}},[
-      h("span",{style:{fontSize:"10px",color:"#8b9dc3",textTransform:"uppercase",letterSpacing:".07em"}},[lbl]),
-      h("span",{style:{fontSize:"13px",fontWeight:"700",fontFamily:"monospace",color:clr||"#e8edf8"}},[val])
+      h("span",{style:{fontSize:"10px",color:"#8b9dc3",textTransform:"uppercase",letterSpacing:".06em"}},[lbl]),
+      h("span",{style:{fontSize:"13px",fontWeight:"700",fontFamily:"monospace",color:clr}},[val])
     ]);
   }
-  medRow.appendChild(medKpi("Média/dia atual",fmtR(Math.round(medAtualRede)),"#8b9dc3"));
-  medRow.appendChild(medKpi("Necessária p/ meta",fmtR(Math.round(medNecRede)),medNecRede>medAtualRede?"#f7c94f":"#4fbf8e"));
-  redeBot.appendChild(medRow);
+  medDiv.appendChild(medKpi("Média/dia atual",fmtR(Math.round(medAtualRede)),"#8b9dc3"));
+  medDiv.appendChild(medKpi("Necessária p/ meta",fmtR(Math.round(medNecRede)),medNecRede>medAtualRede?"#f7c94f":"#4fbf8e"));
+  redeBot.appendChild(medDiv);
   rede.appendChild(redeBot);
   wrap.appendChild(rede);
 
@@ -1673,99 +1701,65 @@ function buildTabMetas(){
 
     var card=h("div",{className:"card",style:{padding:"0",overflow:"hidden",marginBottom:"0"}});
 
-    // Header da loja
+    // Header
     var ch=h("div",{style:{
-      padding:"10px 16px",
-      borderBottom:"1px solid #2d3a52",
+      padding:"9px 14px",borderBottom:"1px solid #2d3a52",
       display:"flex",alignItems:"center",justifyContent:"space-between",
       background:"linear-gradient(90deg,"+clr+"18,transparent)"
     }});
     ch.appendChild(h("span",{style:{fontSize:"12px",fontWeight:"800",letterSpacing:".12em",color:clr}},[st]));
     if(meta>0){
-      ch.appendChild(h("span",{style:{fontSize:"11px",fontWeight:"600",color:sem}},[
-        semIcon+" Proj: "+fmtR(Math.round(proj))
-      ]));
+      ch.appendChild(h("span",{style:{fontSize:"11px",fontWeight:"600",color:sem}},[semIcon+" Proj: "+fmtR(Math.round(proj))]));
     }
     card.appendChild(ch);
 
-    // Body: esquerda métricas | direita inputs
-    var body=h("div",{style:{display:"flex"}});
+    // Corpo do card — sem coluna lateral, tudo em largura 100%
+    var body=h("div",{style:{padding:"14px"}});
 
-    // ESQUERDA
-    var left=h("div",{style:{flex:"1",padding:"14px 16px",borderRight:"1px solid #2d3a52"}});
-
-    // % atingido
-    left.appendChild(h("div",{style:{fontSize:"38px",fontWeight:"900",fontFamily:"monospace",
+    // % grande
+    body.appendChild(h("div",{style:{fontSize:"36px",fontWeight:"900",fontFamily:"monospace",
       color:meta>0?sem:"#2d3a52",lineHeight:"1",marginBottom:"10px"}},[
       meta>0?(pctSt*100).toFixed(1)+"%":"—"
     ]));
 
     // Barra
-    var sb=h("div",{style:{position:"relative",height:"8px",background:"#0d1424",borderRadius:"4px",overflow:"hidden",marginBottom:"4px"}});
+    var sb=h("div",{style:{position:"relative",height:"8px",background:"#0d1424",borderRadius:"4px",overflow:"hidden",marginBottom:"3px"}});
     sb.appendChild(h("div",{style:{height:"100%",width:(Math.min(1,pctSt)*100)+"%",
-      background:"linear-gradient(90deg,"+clr+"88,"+clr+")",borderRadius:"4px"}}));
+      background:"linear-gradient(90deg,"+clr+"77,"+clr+")",borderRadius:"4px"}}));
     sb.appendChild(h("div",{style:{position:"absolute",top:"-2px",left:(pc*100)+"%",
       width:"2px",height:"12px",background:"#8b9dc3",borderRadius:"1px"}}));
-    left.appendChild(sb);
-    left.appendChild(h("div",{style:{display:"flex",justifyContent:"space-between",fontSize:"10px",color:"#8b9dc3",marginBottom:"12px"}},[
+    body.appendChild(sb);
+    body.appendChild(h("div",{style:{display:"flex",justifyContent:"space-between",
+      fontSize:"10px",color:"#8b9dc3",marginBottom:"12px"}},[
       h("span",{},["Pace: "+(pc*100).toFixed(0)+"%"]),h("span",{},["100%"])
     ]));
 
     // KPI rows
     function row(lbl,val,vc){
-      return h("div",{style:{display:"flex",justifyContent:"space-between",fontSize:"11px",
-        color:"#8b9dc3",padding:"2px 0",borderBottom:"1px solid #1e2a40"}},[
+      return h("div",{style:{display:"flex",justifyContent:"space-between",
+        fontSize:"11px",color:"#8b9dc3",padding:"3px 0",borderBottom:"1px solid #1e2a40"}},[
         h("span",{},[lbl]),
         h("span",{style:{fontFamily:"monospace",fontWeight:"600",color:vc||"#e8edf8"}},[val])
       ]);
     }
-    left.appendChild(row("Parcial",fmtR(parc)));
-    left.appendChild(row("Meta",fmtR(meta)));
-    left.appendChild(row("Falta",fmtR(falta),"#8b9dc3"));
-    left.appendChild(h("div",{style:{height:"6px"}}));
-    left.appendChild(row("Média/dia atual",fmtR(Math.round(medAt)),"#8b9dc3"));
-    left.appendChild(row("Necessária p/ meta",fmtR(Math.round(medNec)),medNec>medAt?"#f7c94f":"#4fbf8e"));
-    body.appendChild(left);
+    body.appendChild(row("Parcial",fmtR(parc)));
+    body.appendChild(row("Meta",fmtR(meta)));
+    body.appendChild(row("Falta",fmtR(falta),"#8b9dc3"));
+    body.appendChild(h("div",{style:{height:"6px"}}));
+    body.appendChild(row("Média/dia atual",fmtR(Math.round(medAt)),"#8b9dc3"));
+    body.appendChild(row("Necessária p/ meta",fmtR(Math.round(medNec)),medNec>medAt?"#f7c94f":"#4fbf8e"));
 
-    // DIREITA: inputs
-    var right=h("div",{style:{width:"148px",padding:"14px 12px",display:"flex",flexDirection:"column",gap:"10px",background:"#0d1424"}});
-    right.appendChild(h("div",{style:{fontSize:"10px",fontWeight:"700",color:"#8b9dc3",
-      textTransform:"uppercase",letterSpacing:".1em"}},["\u270F Editar"]));
-
-    function inp(lbl,field){
-      var wr=h("div",{});
-      wr.appendChild(h("div",{style:{fontSize:"10px",color:"#8b9dc3",marginBottom:"3px"}},[lbl]));
-      var i=h("input",{
-        type:"text",
-        value:S[field][st]?fmtNum(S[field][st]):"",
-        placeholder:"0",
-        style:{width:"100%",background:"#141c2e",border:"1px solid #2d3a52",
-          borderRadius:"6px",color:"#e8edf8",fontSize:"12px",
-          fontFamily:"monospace",padding:"5px 8px",outline:"none"},
-        onFocus:function(e){e.target.style.borderColor=clr;e.target.style.boxShadow="0 0 0 2px "+clr+"33";},
-        onBlur:function(e){e.target.style.borderColor="#2d3a52";e.target.style.boxShadow="none";},
-        onChange:(function(s,f){return function(e){
-          var v=parseBR(e.target.value);
-          update(function(){S[f][s]=v;});
-        };})(st,field)
-      });
-      wr.appendChild(i);
-      return wr;
-    }
-    right.appendChild(inp("Meta (R$)","metas"));
-    right.appendChild(inp("Parcial (R$)","parcial"));
-
-    // Deficit badge
+    // Badge deficit/superávit
     if(meta>0&&proj>0){
-      right.appendChild(h("div",{style:{
-        marginTop:"auto",padding:"6px 8px",borderRadius:"6px",
-        background:def>=0?"#4fbf8e22":"#f74f7e22",
-        border:"1px solid "+(def>=0?"#4fbf8e44":"#f74f7e44"),
-        fontSize:"10px",color:def>=0?"#4fbf8e":"#f74f7e",
-        fontWeight:"700",textAlign:"center"
-      }},[(def>=0?"▲ +":"▼ ")+fmtR(Math.abs(Math.round(def)))]));
+      body.appendChild(h("div",{style:{
+        marginTop:"10px",padding:"5px 8px",borderRadius:"6px",
+        background:def>=0?"#4fbf8e18":"#f74f7e18",
+        border:"1px solid "+(def>=0?"#4fbf8e33":"#f74f7e33"),
+        fontSize:"11px",fontWeight:"700",textAlign:"center",
+        color:def>=0?"#4fbf8e":"#f74f7e"
+      }},[(def>=0?"▲ Superávit: +":"▼ Deficit: ")+fmtR(Math.abs(Math.round(def)))]));
     }
-    body.appendChild(right);
+
     card.appendChild(body);
     grid.appendChild(card);
   });
