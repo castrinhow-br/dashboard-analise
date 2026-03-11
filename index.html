@@ -997,38 +997,75 @@ function buildTabRank(rkF,lastRk){
     div.appendChild(h("div",{className:"card",style:{color:"#8b9dc3",textAlign:"center",padding:"32px"}},["Nenhum fornecedor selecionado. Clique em ✓ Todas ou selecione individualmente."]));
     return div;
   }
-  // Usar apenas o último mês do período filtrado (lastRk) para ranking e KPIs
+
+  // Somar TODOS os meses do período filtrado (não apenas o último)
   var supTotals={};
-  activeSups.forEach(function(s){supTotals[s]=lastRk[s]||0;});
+  activeSups.forEach(function(s){
+    supTotals[s]=rkF.reduce(function(acc,d){return acc+(d[s]||0);},0);
+  });
   var sorted=Object.entries(supTotals).filter(function(e){return e[1]>0;}).sort(function(a,b){return b[1]-a[1];});
   var top5active=activeSups.slice(0,5);
+  var singleSup=activeSups.length===1;
 
   if(S.cmpMode){
     var cmpData=activeSups.map(function(s){
       var r={name:s};
-      sortedPeriods().forEach(function(p,i){r[pLabel(p)]=filterForPeriod(S.rank,p).reduce(function(sm,d){return sm+(d[s]||0);},0);});
+      sortedPeriods().forEach(function(p){r[pLabel(p)]=filterForPeriod(S.rank,p).reduce(function(sm,d){return sm+(d[s]||0);},0);});
       return r;
     });
     var rkCmpH=Math.max(320, activeSups.length*(S.periods.length*18+10)+60);
     div.appendChild(h("div",{className:"card"},[h("div",{className:"card-title"},["Fornecedores — Comparativo"]),h("div",{id:"chart-rk-cmp",className:"chart-wrap",style:{height:rkCmpH+"px"}})]));
     window._chartData["rk-cmp"]={type:"grouped-bar-h",data:cmpData,keys:sortedPeriods().map(pLabel),colors:PCLR};
   } else {
+    // KPIs: total consolidado do período
     var kpiRow=h("div",{className:"kpi-row"});
-    var prevRk=rkF.length>1?rkF[rkF.length-2]:{};
+    var periodoLabel=rkF.length>1?lbl(rkF[0].date)+" – "+lbl(rkF[rkF.length-1].date):(lastRk.date?lbl(lastRk.date):"—");
     sorted.slice(0,3).forEach(function(e,i){
-      var sy=yoyVar(S.rank,lastRk.date||"",function(d){return d[e[0]]||null;});
-      var prevRkV=prevRk[e[0]]||0;
-      var momRk=prevRkV>0?(e[1]-prevRkV)/prevRkV:null;
+      var useYoY=S.gMode==="year"&&rkF.length>1;
+      var momRk=null, sy=null;
+      if(useYoY){
+        // YoY: soma do mesmo ano anterior
+        var curYr=rkF[0].date.slice(0,4);
+        var prevYr=String(parseInt(curYr)-1);
+        var prevYrTotal=S.rank.filter(function(d){return d.date.slice(0,4)===prevYr;})
+          .reduce(function(acc,d){return acc+(d[e[0]]||0);},0);
+        sy=prevYrTotal>0?(e[1]-prevYrTotal)/prevYrTotal:null;
+      } else {
+        // MoM: mês anterior
+        var prevTotal=S.rank.slice(0,Math.max(0,S.rank.indexOf(rkF[0]))).slice(-rkF.length)
+          .reduce(function(acc,d){return acc+(d[e[0]]||0);},0);
+        momRk=prevTotal>0?(e[1]-prevTotal)/prevTotal:null;
+      }
       kpiRow.appendChild(kpi((i+1)+"º",e[0],fmtK(e[1]),PAL[i],momRk,sy));
     });
-    kpiRow.appendChild(kpi("Período",lastRk.date?lbl(lastRk.date):"—","","#4f8ef7"));
+    kpiRow.appendChild(kpi("Período",periodoLabel,"","#4f8ef7"));
     div.appendChild(kpiRow);
+
+    // Ranking horizontal (soma do período)
     var barData=sorted.map(function(e,i){return{name:e[0],val:e[1],color:PAL[i%PAL.length]};});
-    div.appendChild(h("div",{className:"card"},[h("div",{className:"card-title"},["Ranking Fornecedores"]),h("div",{id:"chart-rk-bar",className:"chart-wrap",style:{height:(sorted.length*28+60)+"px"}})]));
-    var series=top5active.map(function(s,i){return{name:s,color:PAL[i],values:rkF.map(function(d){return{x:lbl(d.date),y:d[s]||null};})};});
-    div.appendChild(h("div",{className:"card"},[h("div",{className:"card-title"},["Evolução"]),h("div",{id:"chart-rk-trend",className:"chart-wrap",style:{height:"260px"}})]));
+    div.appendChild(h("div",{className:"card"},[h("div",{className:"card-title"},["Ranking Fornecedores — "+periodoLabel]),h("div",{id:"chart-rk-bar",className:"chart-wrap",style:{height:(sorted.length*28+60)+"px"}})]));
     window._chartData["rk-bar"]={type:"bar-h",data:barData,fmtTip:fmtBR};
-    window._chartData["rk-trend"]={type:"line",series:series,fmtY:function(v){return(v/1000).toFixed(0)+"k";},fmtTip:fmtBR,showMA3:true};
+
+    // Gráfico de evolução:
+    // - 1 fornecedor selecionado → barras verticais mês a mês
+    // - múltiplos → linhas (top 5)
+    if(singleSup){
+      var sup1=activeSups[0];
+      // stacked-bar com série única = barras verticais mês a mês
+      var supSeries=[{name:sup1,color:PAL[0],values:rkF.map(function(d){return{x:lbl(d.date),y:d[sup1]||0};})}];
+      div.appendChild(h("div",{className:"card"},[
+        h("div",{className:"card-title"},[sup1+" — Faturamento Mensal"]),
+        h("div",{id:"chart-rk-trend",className:"chart-wrap",style:{height:"260px"}})
+      ]));
+      window._chartData["rk-trend"]={type:"stacked-bar",series:supSeries,fmtTip:fmtBR,fmtY:function(v){return(v/1000).toFixed(0)+"k";}};
+    } else {
+      var series=top5active.map(function(s,i){return{name:s,color:PAL[i],values:rkF.map(function(d){return{x:lbl(d.date),y:d[s]||null};})};});
+      div.appendChild(h("div",{className:"card"},[
+        h("div",{className:"card-title"},["Evolução — Top 5"]),
+        h("div",{id:"chart-rk-trend",className:"chart-wrap",style:{height:"260px"}})
+      ]));
+      window._chartData["rk-trend"]={type:"line",series:series,fmtY:function(v){return(v/1000).toFixed(0)+"k";},fmtTip:fmtBR,showMA3:true};
+    }
   }
   return div;
 }
