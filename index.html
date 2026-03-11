@@ -261,20 +261,39 @@ function buildExecSummary(){
     entries.push({id:s,label:s,color:STORE_CLR[s],R:selEntry[s]&&selEntry[s].R,mom:selEntry[s]&&selEntry[s].V,yoy:yoyVar(fat,selDate,function(d){return d[s]&&d[s].R;}),wd:wd});
   });
 
-  var grid=h("div",{style:{display:"grid",gridTemplateColumns:"repeat(auto-fill,minmax(155px,1fr))",gap:"10px"}});
+  // Média/dia útil do Total: média ponderada pelos dias úteis de cada loja ativa
+  var totalWD=0;
+  activeStores.forEach(function(s){totalWD=Math.max(totalWD,workDays(selDate,s)||0);});
+
+  var grid=h("div",{style:{display:"grid",gridTemplateColumns:"repeat(5,1fr)",gap:"10px"}});
   entries.forEach(function(e){
     if(!e.R)return;
     var semaColor=tlClr(e.yoy!=null?e.yoy:e.mom);
-    var box=h("div",{style:{background:"#1a2035",borderRadius:"10px",padding:"12px 14px",borderLeft:"3px solid "+e.color,position:"relative"}});
+    var wdFinal=e.id==="Total"?totalWD:e.wd;
+    var box=h("div",{style:{background:"#1a2035",borderRadius:"10px",padding:"14px 16px",borderLeft:"3px solid "+e.color,position:"relative",minWidth:"0"}});
+
+    // Header: label + semáforo
     var hrow=h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:"4px"}});
-    hrow.appendChild(h("span",{style:{color:e.color,fontWeight:"700",fontSize:"12px"}},[e.label]));
+    hrow.appendChild(h("span",{style:{color:e.color,fontWeight:"700",fontSize:"12px",letterSpacing:".05em"}},[e.label]));
     hrow.appendChild(h("span",{style:{fontSize:"14px"}},[tlIcon(e.yoy!=null?e.yoy:e.mom)]));
     box.appendChild(hrow);
-    box.appendChild(h("div",{style:{fontSize:"17px",fontWeight:"700",color:"#e8eaf0",marginBottom:"4px"}},[fmtK(e.R)]));
-    box.appendChild(h("div",{style:{height:"3px",borderRadius:"2px",background:semaColor,marginBottom:"6px",opacity:"0.8"}}));
-    if(e.mom!=null)box.appendChild(h("div",{style:{fontSize:"11px",color:tlClr(e.mom),marginBottom:"2px"}},[(e.mom>=0?"▲":"▼")+" "+Math.abs(e.mom*100).toFixed(1)+"% vs mês ant."]));
-    if(e.yoy!=null)box.appendChild(h("div",{style:{fontSize:"11px",color:tlClr(e.yoy),marginBottom:"2px"}},[(e.yoy>=0?"▲":"▼")+" "+Math.abs(e.yoy*100).toFixed(1)+"% vs ano ant."]));
-    if(e.wd)box.appendChild(h("div",{style:{fontSize:"11px",color:"#8b9dc3",marginTop:"2px"}},["💼 R$ "+Math.round(e.R/e.wd).toLocaleString("pt-BR")+"/dia útil ("+e.wd+" dias)"]));
+
+    // Faturamento
+    box.appendChild(h("div",{style:{fontSize:"20px",fontWeight:"800",color:"#e8eaf0",marginBottom:"5px",letterSpacing:"-.5px"}},[fmtK(e.R)]));
+
+    // Barra semáforo
+    box.appendChild(h("div",{style:{height:"2px",borderRadius:"2px",background:semaColor,marginBottom:"8px",opacity:"0.9"}}));
+
+    // Dados alinhados: label esquerda, valor direita
+    function dataRow(label,val,valColor){
+      var r=h("div",{style:{display:"flex",justifyContent:"space-between",alignItems:"baseline",fontSize:"11px",marginBottom:"3px"}});
+      r.appendChild(h("span",{style:{color:"#8b9dc3",flexShrink:"0"}},[label]));
+      r.appendChild(h("span",{style:{color:valColor||"#e8eaf0",fontWeight:"600",marginLeft:"6px",textAlign:"right",overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap"}},[val]));
+      return r;
+    }
+    if(e.mom!=null)box.appendChild(dataRow("vs mês ant.",(e.mom>=0?"▲ ":"▼ ")+Math.abs(e.mom*100).toFixed(1)+"%",tlClr(e.mom)));
+    if(e.yoy!=null)box.appendChild(dataRow("vs ano ant.",(e.yoy>=0?"▲ ":"▼ ")+Math.abs(e.yoy*100).toFixed(1)+"%",tlClr(e.yoy)));
+    if(wdFinal)box.appendChild(dataRow("méd./dia útil","R$ "+Math.round(e.R/wdFinal).toLocaleString("pt-BR")+"  ("+wdFinal+"d)","#8b9dc3"));
 
     // Top 5 categorias expansível (lojas + Total)
     if(e.id==="Total"){
