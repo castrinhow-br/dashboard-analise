@@ -358,7 +358,7 @@ var S={
   _pid:3,
   // ── Metas ──
   metas:{ CAM:560000, CAV:360000, SLM:680000, CAX:400000 },
-  parcial:{ CAM:16851.74, CAV:10625.12, SLM:30074.71, CAX:12895.39 },
+  parcial:{ CAM:167167.61, CAV:167215.53, SLM:244131.95, CAX:119210.55 },
   metaMonth: null
 };
 
@@ -1592,8 +1592,8 @@ function buildTabMetas(){
   }
   var totCAM=wDays(firstDay,lastDay,true);
   var totAll=wDays(firstDay,lastDay,false);
-  var d1=now.getDate()-1;
-  var elDate=d1<1?new Date(yr,mo,1):new Date(yr,mo,d1);
+  var d1=now.getDate();
+  var elDate=new Date(yr,mo,d1);
   if(elDate>lastDay)elDate=lastDay;
   var elCAM=wDays(firstDay,elDate,true);
   var elAll=wDays(firstDay,elDate,false);
@@ -1602,7 +1602,7 @@ function buildTabMetas(){
   function tot(st){return st==="CAM"?totCAM:totAll;}
   function el(st){return st==="CAM"?elCAM:elAll;}
 
-  var diaRef=d1<1?1:d1;
+  var diaRef=d1;
   var monthLbl=MES[mo]+"/"+String(yr).slice(2);
 
   // ── Totais da rede ─────────────────────────────────────────────────────────
