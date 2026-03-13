@@ -359,6 +359,7 @@ var S={
   // ── Metas ──
   metas:{ CAM:560000, CAV:360000, SLM:680000, CAX:400000 },
   parcial:{ CAM:184139.23, CAV:181221.35, SLM:263493.15, CAX:130147.10 },
+  parcialDia: 12,
   metaMonth: null
 };
 
@@ -1592,7 +1593,7 @@ function buildTabMetas(){
   }
   var totCAM=wDays(firstDay,lastDay,true);
   var totAll=wDays(firstDay,lastDay,false);
-  var d1=now.getDate();
+  var d1=S.parcialDia||now.getDate()-1;
   var elDate=new Date(yr,mo,d1);
   if(elDate>lastDay)elDate=lastDay;
   var elCAM=wDays(firstDay,elDate,true);
