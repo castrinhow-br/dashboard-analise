@@ -597,20 +597,30 @@ function buildTabVendedores(){
     barBg.appendChild(barFill);
     barBg.appendChild(marker);
     rrow.appendChild(barBg);
-    var sub=h("div",{style:{display:"flex",justifyContent:"space-between",marginTop:"2px"}});
+    var sub=h("div",{style:{display:"flex",justifyContent:"space-between",marginTop:"2px",flexWrap:"wrap",gap:"4px"}});
     var proj=pace>0?row.R/pace:0;
     var falta=Math.max(0,meta-row.R);
+    var diasRest=totDays-elDays;
+    var medNec=diasRest>0?falta/diasRest:0;
     sub.appendChild(h("span",{style:{fontSize:"10px",color:"#8b9dc3"}},["Projeção: R$ "+Math.round(proj).toLocaleString("pt-BR")]));
     sub.appendChild(h("span",{style:{fontSize:"10px",color:"#8b9dc3"}},["Falta: R$ "+Math.round(falta).toLocaleString("pt-BR")]));
+    if(medNec>0)sub.appendChild(h("span",{style:{fontSize:"10px",color:"#f7c94f"}},["Méd. nec.: R$ "+Math.round(medNec).toLocaleString("pt-BR")+"/dia"]));
     rrow.appendChild(sub);
     rankCard.appendChild(rrow);
   });
   // Pace legend
-  var leg=h("div",{style:{display:"flex",gap:"14px",marginTop:"8px",borderTop:"1px solid #2d3550",paddingTop:"8px"}});
-  leg.appendChild(h("span",{style:{fontSize:"10px",color:"#8b9dc3"}},["│ Pace: "+(pace*100).toFixed(1)+"%"]));
-  leg.appendChild(h("span",{style:{fontSize:"10px",color:"#4fbf8e"}},["▲ Acima do pace"]));
-  leg.appendChild(h("span",{style:{fontSize:"10px",color:"#f7c94f"}},["► Até 15% abaixo"]));
-  leg.appendChild(h("span",{style:{fontSize:"10px",color:"#f74f7e"}},["▼ Crítico"]));
+  var diasRestTotal=totDays-elDays;
+  var medNecMeta=diasRestTotal>0?(meta-0)/totDays:0;
+  var leg=h("div",{style:{marginTop:"10px",borderTop:"1px solid #2d3550",paddingTop:"10px"}});
+  var legRow1=h("div",{style:{display:"flex",gap:"16px",flexWrap:"wrap",marginBottom:"6px"}});
+  legRow1.appendChild(h("span",{style:{fontSize:"11px",fontWeight:"700",color:"#8b9dc3"}},["│ Pace atual: "+(pace*100).toFixed(1)+"%  ("+elDays+" de "+totDays+" dias úteis)"]));
+  legRow1.appendChild(h("span",{style:{fontSize:"11px",color:"#f7c94f"}},["Méd. necessária p/ meta: R$ "+Math.round(meta/totDays).toLocaleString("pt-BR")+"/dia útil"]));
+  leg.appendChild(legRow1);
+  var legRow2=h("div",{style:{display:"flex",gap:"14px",flexWrap:"wrap"}});
+  legRow2.appendChild(h("span",{style:{fontSize:"10px",color:"#4fbf8e"}},["▲ Acima do pace"]));
+  legRow2.appendChild(h("span",{style:{fontSize:"10px",color:"#f7c94f"}},["► Até 15% abaixo"]));
+  legRow2.appendChild(h("span",{style:{fontSize:"10px",color:"#f74f7e"}},["▼ Crítico"]));
+  leg.appendChild(legRow2);
   rankCard.appendChild(leg);
   div.appendChild(rankCard);
 
@@ -2224,7 +2234,14 @@ function drawBarH(g,cfg,w,h,margin){
     g.append("rect").attr("y",yScale(d.name)).attr("x",0).attr("height",yScale.bandwidth()).attr("width",bw).attr("fill",d.color).attr("rx",3)
       .on("mouseover",function(evt){showTip('<div class="tooltip-title">'+d.name+"</div>"+'<span style="font-weight:700">'+((cfg.fmtTip||fmtBR)(d.val))+"</span>",evt);})
       .on("mousemove",function(evt){moveTip(evt);}).on("mouseleave",hideTip);
-    if(bw>30)g.append("text").attr("y",yScale(d.name)+yScale.bandwidth()/2+4).attr("x",bw+6).attr("fill","#e8eaf0").attr("font-size","11").attr("font-weight","600").text((cfg.fmtTip||fmtBR)(d.val));
+    var labelTxt=(cfg.fmtTip||fmtBR)(d.val);
+    var inside=bw>w*0.75;
+    if(bw>30)g.append("text")
+      .attr("y",yScale(d.name)+yScale.bandwidth()/2+4)
+      .attr("x",inside?bw-6:Math.min(bw+6,w-2))
+      .attr("text-anchor",inside?"end":"start")
+      .attr("fill",inside?"#fff":"#e8eaf0")
+      .attr("font-size","11").attr("font-weight","600").text(labelTxt);
   });
 }
 
