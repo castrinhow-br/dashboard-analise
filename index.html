@@ -471,7 +471,7 @@ function update(fn){fn();render();}
 
 // ── BUILD APP ────────────────────────────────────────────────────────────────
 
-var DEFAULT_VEND={CAM:{dia:18,meta:80000,rows:[{n:"Leticia",R:69751.32},{n:"Conceição",R:67726.24},{n:"Eliete",R:56428.18},{n:"Chico",R:51115.99},{n:"Junior",R:46551.15},{n:"Comercial CAM",R:1260.47}]},CAV:{dia:18,meta:80000,rows:[{n:"Valdete",R:96319.03},{n:"Ana",R:76090.34},{n:"Daciana",R:67906.45},{n:"Lilian",R:17361.27},{n:"Comercial CAV",R:8285.93}]},CAX:{dia:18,meta:80000,rows:[{n:"Ednalva",R:55403.78},{n:"Tarcila",R:44206.49},{n:"Raphaela",R:33041.88},{n:"Alci Travassos",R:17401.13},{n:"Comercial CAX",R:14784.55},{n:"Lopes",R:14751.58},{n:"Carlos Henrique",R:9794.61},{n:"Wellington",R:75.00},{n:"Kamilla",R:56.89}]},SLM:{dia:18,meta:80000,rows:[{n:"Constantine",R:91300.35},{n:"Carla",R:90747.74},{n:"Jean",R:87180.85},{n:"Luziane",R:59812.90},{n:"Erick",R:53557.66},{n:"Comercial SLM",R:10705.46},{n:"Jessika",R:6196.16}]}};
+var DEFAULT_VEND={CAM:{dia:18,meta:80000,rows:[{n:"Leticia",R:69751.32},{n:"Conceição",R:67726.24},{n:"Eliete",R:56428.18},{n:"Chico",R:51115.99},{n:"Junior",R:46551.15}]},CAV:{dia:18,meta:80000,rows:[{n:"Valdete",R:96319.03},{n:"Ana",R:76090.34},{n:"Daciana",R:67906.45},{n:"Lilian",R:17361.27}]},CAX:{dia:18,meta:80000,rows:[{n:"Ednalva",R:55403.78},{n:"Tarcila",R:44206.49},{n:"Raphaela",R:33041.88},{n:"Alci Travassos",R:17401.13},{n:"Lopes",R:14751.58},{n:"Carlos Henrique",R:9794.61},{n:"Wellington",R:75.00},{n:"Kamilla",R:56.89}]},SLM:{dia:18,meta:80000,rows:[{n:"Constantine",R:91300.35},{n:"Carla",R:90747.74},{n:"Jean",R:87180.85},{n:"Luziane",R:59812.90},{n:"Erick",R:53557.66},{n:"Jessika",R:6196.16}]}};
 
 function buildTabVendedores(){
   var div=h("div",{});
@@ -537,7 +537,7 @@ function buildTabVendedores(){
   ]));
 
   // Sort by R desc
-  var rows=stData.rows.slice().sort(function(a,b){return b.R-a.R;});
+  var rows=stData.rows.filter(function(r){return!/^Comercial/i.test(r.n);}).slice().sort(function(a,b){return b.R-a.R;});
   var totalR=rows.reduce(function(s,r){return s+r.R;},0);
 
   // Ranking bar
