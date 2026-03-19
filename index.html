@@ -512,10 +512,15 @@ function buildTabVendedores(){
   var firstDay=new Date(yr,mo,1),lastDay=new Date(yr,mo+1,0);
   function wDays(from,to,noSun){var n=0,d=new Date(from);while(d<=to){if(!noSun||d.getDay()!==0)n++;d.setDate(d.getDate()+1);}return n;}
   var noSun=st==="CAM";
-  var totDays=wDays(firstDay,lastDay,noSun);
+  var totDaysStore=wDays(firstDay,lastDay,noSun);
   var elDate=new Date(yr,mo,stData.dia||1);
   if(elDate>lastDay)elDate=lastDay;
-  var elDays=wDays(firstDay,elDate,noSun);
+  var elDaysStore=wDays(firstDay,elDate,noSun);
+  // Vendedores trabalham escala 6x1 — CAM já exclui domingo (folga fixa),
+  // nas demais lojas aplica fator 6/7 sobre os dias da loja
+  var fator=st==="CAM"?1:(6/7);
+  var totDays=Math.round(totDaysStore*fator);
+  var elDays=Math.round(elDaysStore*fator);
   var pace=totDays>0?elDays/totDays:0;
   var meta=stData.meta||80000;
   var monthLbl=MES[mo]+"/"+String(yr).slice(2);
