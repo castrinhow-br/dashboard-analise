@@ -359,8 +359,8 @@ var S={
   // ── Metas ──
   metas:{ CAM:560000, CAV:360000, SLM:680000, CAX:400000 },
   vendStore:"CAM",
-  parcial:{ CAM:325031.77, CAV:286664.00, SLM:438041.82, CAX:212404.42 },
-  parcialDia: 20,
+  parcial:{ CAM:342417.53, CAV:312993.45, SLM:473910.53, CAX:226554.59 },
+  parcialDia: 22,
   metaMonth: null
 };
 
@@ -471,7 +471,7 @@ function update(fn){fn();render();}
 
 // ── BUILD APP ────────────────────────────────────────────────────────────────
 
-var DEFAULT_VEND={CAM:{dia:20,meta:80000,rows:[{n:"Leticia",R:76304.64},{n:"Conceição",R:72692.48},{n:"Eliete",R:65875.20},{n:"Chico",R:58806.41},{n:"Junior",R:49876.07}]},CAV:{dia:20,meta:80000,rows:[{n:"Valdete",R:101922.66},{n:"Ana",R:82313.00},{n:"Daciana",R:76615.20}]},CAX:{dia:20,meta:80000,rows:[{n:"Ednalva",R:59987.95},{n:"Tarcila",R:48800.65},{n:"Raphaela",R:38716.91},{n:"Lopes",R:21917.12},{n:"Carlos Henrique",R:10051.31},{n:"Wellington",R:75.00},{n:"Kamilla",R:56.89}]},SLM:{dia:20,meta:80000,rows:[{n:"Constantine",R:101240.10},{n:"Carla",R:94937.49},{n:"Jean",R:100687.43},{n:"Luziane",R:63324.75},{n:"Erick",R:59605.27},{n:"Jessika",R:6196.16}]}};
+var DEFAULT_VEND={CAM:{dia:22,meta:80000,rows:[{n:"Leticia",R:80694.28},{n:"Conceição",R:77174.06},{n:"Eliete",R:70337.85},{n:"Chico",R:61812.63},{n:"Junior",R:50921.75}]},CAV:{dia:22,meta:80000,rows:[{n:"Valdete",R:104612.65},{n:"Ana",R:92642.32},{n:"Daciana",R:89408.45}]},CAX:{dia:22,meta:80000,rows:[{n:"Ednalva",R:63565.72},{n:"Tarcila",R:53059.29},{n:"Raphaela",R:38752.99},{n:"Lopes",R:28064.50},{n:"Carlos Henrique",R:10051.31},{n:"Wellington",R:75.00},{n:"Kamilla",R:56.89}]},SLM:{dia:22,meta:80000,rows:[{n:"Jean",R:110069.91},{n:"Carla",R:108759.29},{n:"Constantine",R:105010.97},{n:"Luziane",R:67865.20},{n:"Erick",R:62924.07},{n:"Jessika",R:6196.16}]}};
 
 function buildTabVendedores(){
   var div=h("div",{});
