@@ -213,10 +213,35 @@ function buildExecSummary(){
   var fat=S.fat;
   if(!fat.length)return null;
   var allDatesExec=fat.map(function(d){return d.date;});
-  // Default to last available month
   if(!S.execM||allDatesExec.indexOf(S.execM)<0)S.execM=allDatesExec[allDatesExec.length-1];
   var selDate=S.execM;
-  var selEntry=fat.find(function(d){return d.date===selDate;})||fat[fat.length-1];
+
+  // If global filter is year mode, aggregate all months of that year
+  var f=activeFilter();
+  var isYearMode=f&&f.mode==="year"&&f.yr&&f.yr!=="all";
+  var fatFiltered=isYearMode?fat.filter(function(d){return d.date.slice(0,4)===f.yr;}):null;
+
+  var selEntry;
+  if(isYearMode&&fatFiltered&&fatFiltered.length){
+    // Build aggregated entry summing R across all months
+    selEntry={date:f.yr+"-sum"};
+    var STORES_ALL=["CAM","CAV","SLM","CAX","Total"];
+    STORES_ALL.forEach(function(s){
+      var sumR=fatFiltered.reduce(function(acc,d){return acc+(d[s]&&d[s].R?d[s].R:0);},0);
+      selEntry[s]={R:sumR,V:null};
+    });
+    // YoY: compare with previous year
+    var prevYr=String(parseInt(f.yr)-1);
+    var fatPrev=fat.filter(function(d){return d.date.slice(0,4)===prevYr;});
+    STORES_ALL.forEach(function(s){
+      var prevR=fatPrev.reduce(function(acc,d){return acc+(d[s]&&d[s].R?d[s].R:0);},0);
+      var curR=selEntry[s].R;
+      selEntry[s].yoy=prevR>0?(curR-prevR)/prevR:null;
+    });
+    selDate=f.yr;
+  } else {
+    selEntry=fat.find(function(d){return d.date===selDate;})||fat[fat.length-1];
+  }
 
   var wrap=h("div",{className:"card",style:{marginBottom:"10px"}});
 
@@ -255,10 +280,18 @@ function buildExecSummary(){
   wrap.appendChild(hdrRow);
 
   var activeStores=S.aStores.filter(function(s){return selEntry[s]&&selEntry[s].R;});
-  var entries=[{id:"Total",label:"🏪 Total",color:"#4f8ef7",R:selEntry.Total&&selEntry.Total.R,mom:selEntry.Total&&selEntry.Total.V,yoy:yoyVar(fat,selDate,function(d){return d.Total&&d.Total.R;}),wd:null}];
+  var entries=[{id:"Total",label:"🏪 Total",color:"#4f8ef7",
+    R:selEntry.Total&&selEntry.Total.R,
+    mom:isYearMode?null:(selEntry.Total&&selEntry.Total.V),
+    yoy:isYearMode?(selEntry.Total&&selEntry.Total.yoy):yoyVar(fat,selDate,function(d){return d.Total&&d.Total.R;}),
+    wd:null}];
   activeStores.forEach(function(s){
-    var wd=workDays(selDate,s);
-    entries.push({id:s,label:s,color:STORE_CLR[s],R:selEntry[s]&&selEntry[s].R,mom:selEntry[s]&&selEntry[s].V,yoy:yoyVar(fat,selDate,function(d){return d[s]&&d[s].R;}),wd:wd});
+    var wd=isYearMode?null:workDays(selDate,s);
+    entries.push({id:s,label:s,color:STORE_CLR[s],
+      R:selEntry[s]&&selEntry[s].R,
+      mom:isYearMode?null:(selEntry[s]&&selEntry[s].V),
+      yoy:isYearMode?(selEntry[s]&&selEntry[s].yoy):yoyVar(fat,selDate,function(d){return d[s]&&d[s].R;}),
+      wd:wd});
   });
 
   // Média/dia útil do Total
@@ -359,6 +392,7 @@ var S={
   // ── Metas ──
   metas:{ CAM:560000, CAV:360000, SLM:680000, CAX:400000 },
   vendStore:"CAM",
+  metasVendExp:{},
   parcial:{ CAM:380132.58, CAV:354350.25, SLM:518165.33, CAX:275150.31 },
   parcialDia: 25,
   metaMonth: null
@@ -473,6 +507,9 @@ function update(fn){fn();render();}
 
 var DEFAULT_VEND={CAM:{dia:25,meta:80000,rows:[{n:"Conceição",R:87523.94},{n:"Leticia",R:87283.26},{n:"Eliete",R:76792.03},{n:"Chico",R:66717.49},{n:"Junior",R:57067.63}]},CAV:{dia:25,meta:80000,rows:[{n:"Valdete",R:124036.54},{n:"Ana",R:103776.47},{n:"Daciana",R:97665.33}]},CAX:{dia:25,meta:80000,rows:[{n:"Ednalva",R:87537.99},{n:"Tarcila",R:58957.34},{n:"Raphaela",R:46051.32},{n:"Lopes",R:35731.92},{n:"Carlos Henrique",R:12789.34},{n:"Wellington",R:75.00},{n:"Kamilla",R:56.89}]},SLM:{dia:25,meta:80000,rows:[{n:"Jean",R:118995.60},{n:"Carla",R:116434.68},{n:"Constantine",R:110909.72},{n:"Luziane",R:77169.03},{n:"Erick",R:72710.26},{n:"Jessika",R:6196.16}]}};
 
+var VEND_EXCLUIDOS=/^Comercial/i;
+var VEND_EXCLUIDOS_EXATOS=["Lilian","LILIAN","Alci Travassos"];
+
 function buildTabVendedores(){
   var div=h("div",{});
   var STORES=["CAM","CAV","SLM","CAX"];
@@ -537,7 +574,7 @@ function buildTabVendedores(){
   ]));
 
   // Sort by R desc
-  var VEND_EXCLUIDOS=/^Comercial/i;var VEND_EXCLUIDOS_EXATOS=["Lilian","LILIAN","Alci Travassos"];var rows=stData.rows.filter(function(r){return!VEND_EXCLUIDOS.test(r.n)&&VEND_EXCLUIDOS_EXATOS.indexOf(r.n)<0;}).slice().sort(function(a,b){return b.R-a.R;});
+  var rows=stData.rows.filter(function(r){return!VEND_EXCLUIDOS.test(r.n)&&VEND_EXCLUIDOS_EXATOS.indexOf(r.n)<0;}).slice().sort(function(a,b){return b.R-a.R;});
   var totalR=rows.reduce(function(s,r){return s+r.R;},0);
 
   // Ranking bar
@@ -873,17 +910,18 @@ function buildTabFat(fatF,lastFat,dates,yrs){
   } else {
     // KPIs
     var kpiRow2=h("div",{className:"kpi-row"});
-    // Total KPI
+    var multiMonth=fatF.length>1;
+    var periodoFatLbl=multiMonth?(lbl(fatF[0].date)+" – "+lbl(lastFat.date)):(lastFat.date?lbl(lastFat.date):"");
+    var fatTotR=fatF.reduce(function(a,d){return a+(d.Total&&d.Total.R?d.Total.R:0);},0);
     var totYoy=yoyVar(S.fat,lastFat.date||"",function(d){return d.Total&&d.Total.R;});
-    var totEl=kpi("Total",fmtK(lastFat.Total&&lastFat.Total.R),lastFat.date?lbl(lastFat.date):"","#4f8ef7",lastFat.Total&&lastFat.Total.V,totYoy);
+    var totEl=kpi("Total",fmtK(multiMonth?fatTotR:lastFat.Total&&lastFat.Total.R),periodoFatLbl,"#4f8ef7",multiMonth?null:lastFat.Total&&lastFat.Total.V,multiMonth?null:totYoy);
     kpiRow2.appendChild(totEl);
     S.aStores.forEach(function(s){
-      if(lastFat[s]&&lastFat[s].R){
-        var wd=workDays(lastFat.date||"",s);
-        var rday=wd?Math.round(lastFat[s].R/wd):null;
-        var sy=yoyVar(S.fat,lastFat.date||"",function(d){return d[s]&&d[s].R;});
-        var sub="Margem "+pct(lastFat[s].Mg)+(rday?" · R$ "+rday.toLocaleString("pt-BR")+"/dia":"");
-        kpiRow2.appendChild(kpi(s,fmtK(lastFat[s].R),sub,STORE_CLR[s],lastFat[s].V,sy));
+      var stR=multiMonth?fatF.reduce(function(a,d){return a+(d[s]&&d[s].R?d[s].R:0);},0):(lastFat[s]&&lastFat[s].R?lastFat[s].R:0);
+      if(stR>0){
+        var sy=multiMonth?null:yoyVar(S.fat,lastFat.date||"",function(d){return d[s]&&d[s].R;});
+        var sub=multiMonth?periodoFatLbl:("Margem "+pct(lastFat[s]&&lastFat[s].Mg));
+        kpiRow2.appendChild(kpi(s,fmtK(stR),sub,STORE_CLR[s],multiMonth?null:(lastFat[s]&&lastFat[s].V),sy));
       }
     });
     div.appendChild(kpiRow2);
@@ -972,7 +1010,14 @@ function buildTabMix(lpF,lastLP){
     div.appendChild(h("div",{className:"card",style:{color:"#8b9dc3",textAlign:"center",padding:"32px"}},["Nenhuma categoria selecionada. Clique em ✓ Todas ou selecione individualmente."]));
     return div;
   }
-  var filteredEntry=Object.entries(lastLP).filter(function(e){return e[0]!=="date"&&activeCats.indexOf(e[0])>=0;}).sort(function(a,b){return b[1]-a[1];});
+  // Sum all months in lpF when multi-period
+  var multiLP=lpF.length>1;
+  var lpAgg=lastLP;
+  if(multiLP){
+    lpAgg={};
+    lpF.forEach(function(d){Object.keys(d).forEach(function(k){if(k!=="date")lpAgg[k]=(lpAgg[k]||0)+d[k];});});
+  }
+  filteredEntry=Object.entries(lpAgg).filter(function(e){return e[0]!=="date"&&activeCats.indexOf(e[0])>=0;}).sort(function(a,b){return b[1]-a[1];});
 
   if(S.cmpMode){
     var STORE_KEYS_CMP=["CAM","CAV","SLM","CAX"];
@@ -1070,7 +1115,14 @@ function buildTabMixStore(lpF,lastLP,storeLabel,aMixKey){
     div.appendChild(h("div",{className:"card",style:{color:"#8b9dc3",textAlign:"center",padding:"32px"}},["Nenhuma categoria selecionada."]));
     return div;
   }
-  var filteredEntry=Object.entries(lastLP).filter(function(e){return e[0]!=="date"&&activeCats.indexOf(e[0])>=0;}).sort(function(a,b){return b[1]-a[1];});
+  // Sum all months in lpF when multi-period
+  var multiLP=lpF.length>1;
+  var lpAgg=lastLP;
+  if(multiLP){
+    lpAgg={};
+    lpF.forEach(function(d){Object.keys(d).forEach(function(k){if(k!=="date")lpAgg[k]=(lpAgg[k]||0)+d[k];});});
+  }
+  filteredEntry=Object.entries(lpAgg).filter(function(e){return e[0]!=="date"&&activeCats.indexOf(e[0])>=0;}).sort(function(a,b){return b[1]-a[1];});
 
   if(S.cmpMode){
     var cmpData=activeCats.map(function(c){
@@ -1223,14 +1275,18 @@ function buildTabPisos(pisF,lastPis,dates,yrs){
   } else {
     var kpiRow=h("div",{className:"kpi-row"});
     var prevPis=pisF.length>1?pisF[pisF.length-2]:{};
+    var multiPis=pisF.length>1;
+    var perioPisLbl=multiPis?(lbl(pisF[0].date)+" – "+lbl(lastPis.date)):(lastPis.date?lbl(lastPis.date):"");
     S.aPis.forEach(function(s){
-      if(lastPis[s]&&lastPis[s].R){
-        var sy=yoyVar(S.pis,lastPis.date||"",function(d){return d[s]&&d[s].R?d[s].R:null;});
+      var pisR=multiPis?pisF.reduce(function(a,d){return a+(d[s]&&d[s].R?d[s].R:0);},0):(lastPis[s]&&lastPis[s].R?lastPis[s].R:0);
+      if(pisR>0){
+        var sy=multiPis?null:yoyVar(S.pis,lastPis.date||"",function(d){return d[s]&&d[s].R?d[s].R:null;});
         var prevR=prevPis[s]&&prevPis[s].R?prevPis[s].R:0;
-        var mom=prevR>0?(lastPis[s].R-prevR)/prevR:null;
-        var preco=lastPis[s].R&&lastPis[s].m2&&lastPis[s].m2>0?lastPis[s].R/lastPis[s].m2:null;
-        var sub=(lastPis[s].m2?lastPis[s].m2.toLocaleString("pt-BR",{maximumFractionDigits:0}):"")+" m²"+(preco?" · R$ "+preco.toFixed(0)+"/m²":"");
-        kpiRow.appendChild(kpi(s,fmtK(lastPis[s].R),sub,PISOS_CLR[s],mom,sy));
+        var mom=multiPis?null:(prevR>0?(lastPis[s].R-prevR)/prevR:null);
+        var pisM2=multiPis?pisF.reduce(function(a,d){return a+(d[s]&&d[s].m2?d[s].m2:0);},0):(lastPis[s]&&lastPis[s].m2?lastPis[s].m2:0);
+        var pisPreco=pisR&&pisM2>0?pisR/pisM2:null;
+        var sub=(pisM2>0?pisM2.toLocaleString("pt-BR",{maximumFractionDigits:0})+" m²":"")+(pisPreco?" · R$ "+pisPreco.toFixed(0)+"/m²":"")+(multiPis?" ("+perioPisLbl+")":"");
+        kpiRow.appendChild(kpi(s,fmtK(pisR),sub,PISOS_CLR[s],mom,sy));
       }
     });
     div.appendChild(kpiRow);
@@ -1930,6 +1986,66 @@ function buildTabMetas(){
         fontSize:"11px",fontWeight:"700",textAlign:"center",
         color:def>=0?"#4fbf8e":"#f74f7e"
       }},[(def>=0?"▲ Superávit: +":"▼ Deficit: ")+fmtR(Math.abs(Math.round(def)))]));
+    }
+
+    // ── Expansível vendedores ─────────────────────────────────────────────
+    var stVend=DEFAULT_VEND[st];
+    if(stVend&&stVend.rows&&stVend.rows.length){
+      var vendRows=stVend.rows.filter(function(r){
+        return!VEND_EXCLUIDOS.test(r.n)&&VEND_EXCLUIDOS_EXATOS.indexOf(r.n)<0;
+      }).slice().sort(function(a,b){return b.R-a.R;});
+      if(vendRows.length){
+        var isExp=!!S.metasVendExp[st];
+        var btnVend=h("button",{
+          style:{marginTop:"8px",width:"100%",background:"transparent",
+            border:"1px solid #2d3550",borderRadius:"5px",color:"#8b9dc3",
+            fontSize:"10px",padding:"4px 8px",cursor:"pointer",
+            display:"flex",justifyContent:"space-between",alignItems:"center"},
+          onClick:(function(k){return function(){update(function(){
+            var ex=Object.assign({},S.metasVendExp);ex[k]=!ex[k];S.metasVendExp=ex;
+          });};})(st)
+        },[
+          h("span",{},[(isExp?"▲":"▼")+" Vendedores ("+vendRows.length+")"]),
+          h("span",{style:{color:CLR[st]}},["Dia "+stVend.dia])
+        ]);
+        body.appendChild(btnVend);
+        if(isExp){
+          var vPanel=h("div",{style:{marginTop:"6px",borderTop:"1px solid #2d3550",paddingTop:"6px"}});
+          // Pace ajustado 6x1 para não-CAM
+          var vendPace=st==="CAM"?pc:Math.round(elAll*(6/7))/Math.max(1,Math.round(totAll*(6/7)));
+          var vendMeta=stVend.meta||80000;
+          vendRows.forEach(function(vr){
+            var vpct=vendMeta>0?vr.R/vendMeta:0;
+            var vsem=vpct>=vendPace?"#4fbf8e":vpct>=(vendPace-0.15)?"#f7c94f":"#f74f7e";
+            var vrow=h("div",{style:{marginBottom:"5px"}});
+            var vlbl=h("div",{style:{display:"flex",justifyContent:"space-between",
+              fontSize:"10px",marginBottom:"2px"}});
+            vlbl.appendChild(h("span",{style:{color:CLR[st],fontWeight:"600",
+              overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap",maxWidth:"90px"}},[vr.n]));
+            var vvals=h("span",{style:{flexShrink:"0",marginLeft:"4px",textAlign:"right"}});
+            vvals.appendChild(h("span",{style:{color:"#e8eaf0",fontWeight:"700",marginRight:"6px"}},
+              [fmtK(vr.R)]));
+            vvals.appendChild(h("span",{style:{color:vsem}},
+              [(vpct*100).toFixed(1)+"%"]));
+
+            vlbl.appendChild(vvals);
+            vrow.appendChild(vlbl);
+            // Mini progress bar
+            var vbg=h("div",{style:{background:"#2d3550",borderRadius:"2px",height:"4px",
+              width:"100%",position:"relative"}});
+            var vfill=h("div",{style:{background:vsem,borderRadius:"2px",height:"4px",
+              width:Math.min(100,vpct*100).toFixed(1)+"%"}});
+
+            vbg.appendChild(vfill);
+            vrow.appendChild(vbg);
+            vPanel.appendChild(vrow);
+          });
+          // Pace label
+          vPanel.appendChild(h("div",{style:{fontSize:"9px",color:"#8b9dc3",marginTop:"4px"}},
+            ["│ Pace: "+(pc*100).toFixed(1)+"% · "+elSt+" de "+totSt+" dias úteis"]));
+          body.appendChild(vPanel);
+        }
+      }
     }
 
     card.appendChild(body);
